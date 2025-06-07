@@ -1,10 +1,9 @@
 [project]
-name = "telegram-popbot"
+name = "repl-nix-workspace"
 version = "0.1.0"
-description = "Bot de Telegram para cultura pop com GPT e geração de conteúdo automatizado"
+description = "Add your description here"
 requires-python = ">=3.11"
-
 dependencies = [
     "python-telegram-bot==20.7",
-    "openai>=1.0.0"
+    "telegram>=0.0.1",
 ]
