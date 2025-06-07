@@ -45,5 +45,5 @@ def main():
         logger.error(f"Error starting bot: {e}")
         raise
 
-if __name__ == '__main__':
+if name == '__main__':
     main()
