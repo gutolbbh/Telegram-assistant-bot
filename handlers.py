@@ -5,11 +5,18 @@ Contains all the bot's response logic and command implementations.
 
 import logging
 from datetime import datetime
+
 from telegram import Update
 from telegram.ext import ContextTypes
-from config import BOT_NAME, ADMIN_IDS
+
+import openai
+
+from config import BOT_NAME, ADMIN_IDS, OPENAI_API_KEY
 
 logger = logging.getLogger(__name__)
+
+openai.api_key = OPENAI_API_KEY
+
 
 async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
@@ -18,16 +25,22 @@ async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     """
     user = update.effective_user
     logger.info(f"User {user.id} ({user.username}) started the bot")
-    
+
     welcome_message = (
         f"🤖 Olá, {user.first_name}! Eu sou o {BOT_NAME}!\n\n"
         "Comandos disponíveis:\n"
         "/start - Iniciar o bot\n"
-        "/help - Mostrar ajuda\n\n"
+        "/help - Mostrar ajuda\n"
+        "/stats - Estatísticas (admin)\n"
+        "/gpt - Pergunte ao GPT\n"
+        "/traduz - Traduza texto\n"
+        "/resumo - Resuma texto\n"
+        "/meme - Gere meme divertido\n\n"
         "Você pode me enviar qualquer mensagem e eu vou responder!"
     )
-    
+
     await update.message.reply_text(welcome_message)
+
 
 async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
@@ -36,22 +49,28 @@ async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     """
     user = update.effective_user
     logger.info(f"User {user.id} ({user.username}) requested help")
-    
+
     help_message = (
         f"🆘 **Ajuda do {BOT_NAME}**\n\n"
         "**Comandos disponíveis:**\n"
         "• /start - Iniciar o bot e ver mensagem de boas-vindas\n"
-        "• /help - Mostrar esta mensagem de ajuda\n\n"
+        "• /help - Mostrar esta mensagem de ajuda\n"
+        "• /stats - Mostrar estatísticas (apenas admins)\n"
+        "• /gpt <pergunta> - Respondo perguntas com GPT-4\n"
+        "• /traduz <texto> - Tradução para português\n"
+        "• /resumo <texto> - Resumo rápido\n"
+        "• /meme <tema> - Gerar meme engraçado\n\n"
         "**Como usar:**\n"
-        "• Envie qualquer mensagem de texto e eu vou responder\n"
-        "• Use os comandos acima para funcionalidades específicas\n\n"
+        "• Envie qualquer mensagem de texto e eu responderei\n"
+        "• Use os comandos para funcionalidades específicas\n\n"
         "**Sobre:**\n"
         f"• Bot: {BOT_NAME}\n"
         "• Desenvolvido em Python\n"
         "• Sempre online e pronto para conversar! 💬"
     )
-    
+
     await update.message.reply_text(help_message, parse_mode='Markdown')
+
 
 async def echo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
@@ -59,20 +78,21 @@ async def echo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     Echoes the user's message with additional context.
     """
     user = update.effective_user
-    message_text = update.message.text
-    
+    message_text = update.message.text or ""
+
     logger.info(f"User {user.id} ({user.username}) sent message: {message_text[:50]}...")
-    
-    # Create a response based on the message
+
+    text_lower = message_text.lower()
+
     if len(message_text) > 100:
         response = (
             f"📝 Recebi sua mensagem longa, {user.first_name}!\n"
             f"Sua mensagem tem {len(message_text)} caracteres.\n"
             f"Aqui está um resumo: '{message_text[:50]}...'"
         )
-    elif "olá" in message_text.lower() or "oi" in message_text.lower():
+    elif any(greeting in text_lower for greeting in ["olá", "oi", "ola", "e aí", "eai"]):
         response = f"👋 Olá, {user.first_name}! Como posso ajudar você hoje?"
-    elif "obrigado" in message_text.lower() or "obrigada" in message_text.lower():
+    elif any(thanks in text_lower for thanks in ["obrigado", "obrigada", "valeu", "brigado"]):
         response = "😊 De nada! Estou sempre aqui para ajudar!"
     elif "?" in message_text:
         response = (
@@ -86,8 +106,9 @@ async def echo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             f"Você disse: '{message_text}'\n"
             "Obrigado por conversar comigo! Use /help para ver mais comandos."
         )
-    
+
     await update.message.reply_text(response)
+
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
@@ -95,16 +116,14 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
     Logs errors and optionally notifies admins.
     """
     logger.error(f"Exception while handling an update: {context.error}")
-    
-    # Try to get user information if available
+
     user_info = "Unknown user"
     if isinstance(update, Update) and update.effective_user:
         user = update.effective_user
         user_info = f"User {user.id} ({user.username})"
-    
+
     logger.error(f"Error occurred for {user_info}: {context.error}")
-    
-    # Send error message to user if possible
+
     if isinstance(update, Update) and update.effective_message:
         try:
             await update.effective_message.reply_text(
@@ -113,8 +132,7 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
             )
         except Exception as e:
             logger.error(f"Could not send error message to user: {e}")
-    
-    # Notify admins if configured
+
     if ADMIN_IDS and context.bot:
         error_message = (
             f"🚨 **Erro no Bot**\n\n"
@@ -122,7 +140,7 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
             f"**Erro:** {str(context.error)[:200]}...\n"
             f"**Horário:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
         )
-        
+
         for admin_id in ADMIN_IDS:
             try:
                 await context.bot.send_message(
@@ -133,19 +151,20 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
             except Exception as e:
                 logger.error(f"Could not send error notification to admin {admin_id}: {e}")
 
+
 async def stats_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     Handle the /stats command (admin only).
     Shows bot statistics and usage information.
     """
     user = update.effective_user
-    
+
     if user.id not in ADMIN_IDS:
         await update.message.reply_text("❌ Comando disponível apenas para administradores.")
         return
-    
+
     logger.info(f"Admin {user.id} ({user.username}) requested stats")
-    
+
     stats_message = (
         "📊 **Estatísticas do Bot**\n\n"
         f"**Bot:** {BOT_NAME}\n"
@@ -154,16 +173,15 @@ async def stats_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         f"**Admins configurados:** {len(ADMIN_IDS)}\n\n"
         "Use /help para ver todos os comandos disponíveis."
     )
-    
+
     await update.message.reply_text(stats_message, parse_mode='Markdown')
-import openai
-from config import OPENAI_API_KEY
-from telegram import Update
-from telegram.ext import ContextTypes
 
-openai.api_key = OPENAI_API_KEY
 
-async def gpt_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def gpt_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Handle the /gpt command.
+    Sends a prompt to OpenAI GPT-4 and replies with the response.
+    """
     if not OPENAI_API_KEY:
         await update.message.reply_text("❌ Chave OpenAI não configurada.")
         return
@@ -179,14 +197,22 @@ async def gpt_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             messages=[
                 {"role": "system", "content": "Você é um assistente de cultura pop divertido e informativo."},
                 {"role": "user", "content": prompt}
-            ]
+            ],
+            max_tokens=512,
+            temperature=0.7,
         )
         reply = response.choices[0].message.content.strip()
         await update.message.reply_text(reply)
     except Exception as e:
+        logger.error(f"Erro na chamada GPT: {e}")
         await update.message.reply_text(f"Erro ao chamar GPT: {str(e)}")
 
-async def traduz_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+async def traduz_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Handle the /traduz command.
+    Translates given text to Portuguese (Brazilian) using OpenAI GPT.
+    """
     if not OPENAI_API_KEY:
         await update.message.reply_text("❌ Chave OpenAI não configurada.")
         return
@@ -204,14 +230,22 @@ async def traduz_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             messages=[
                 {"role": "system", "content": "Você é um tradutor especialista em cultura pop."},
                 {"role": "user", "content": prompt}
-            ]
+            ],
+            max_tokens=512,
+            temperature=0.5,
         )
         reply = response.choices[0].message.content.strip()
         await update.message.reply_text(reply)
     except Exception as e:
+        logger.error(f"Erro na tradução: {e}")
         await update.message.reply_text(f"Erro ao traduzir: {str(e)}")
 
-async def resumo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+async def resumo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Handle the /resumo command.
+    Summarizes given text focused on pop culture using OpenAI GPT.
+    """
     if not OPENAI_API_KEY:
         await update.message.reply_text("❌ Chave OpenAI não configurada.")
         return
@@ -229,14 +263,22 @@ async def resumo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             messages=[
                 {"role": "system", "content": "Você é um assistente que resume textos de cultura pop."},
                 {"role": "user", "content": prompt}
-            ]
+            ],
+            max_tokens=256,
+            temperature=0.5,
         )
         reply = response.choices[0].message.content.strip()
         await update.message.reply_text(reply)
     except Exception as e:
+        logger.error(f"Erro no resumo: {e}")
         await update.message.reply_text(f"Erro ao resumir: {str(e)}")
 
-async def meme_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+async def meme_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Handle the /meme command.
+    Generates a funny meme text about pop culture using OpenAI GPT.
+    """
     if not OPENAI_API_KEY:
         await update.message.reply_text("❌ Chave OpenAI não configurada.")
         return
@@ -254,9 +296,12 @@ async def meme_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             messages=[
                 {"role": "system", "content": "Você é um gerador de memes engraçados e criativos sobre cultura pop."},
                 {"role": "user", "content": prompt_gpt}
-            ]
+            ],
+            max_tokens=128,
+            temperature=0.9,
         )
         reply = response.choices[0].message.content.strip()
         await update.message.reply_text(reply)
     except Exception as e:
+        logger.error(f"Erro ao gerar meme: {e}")
         await update.message.reply_text(f"Erro ao gerar meme: {str(e)}")
