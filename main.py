@@ -16,7 +16,7 @@ from telegram.ext import (
 )
 
 # Configurações do bot
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = os.getenv("7782377206:AAFjEbybye9AztpNNaLDhaQK5FE-PAU5j8g")
 translator = Translator()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
