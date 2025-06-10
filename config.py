@@ -14,6 +14,9 @@ ENABLE_LOGGING = os.getenv("ENABLE_LOGGING", "True").lower() == "true"
 # Substitua ou carregue de outro lugar seguro (ex: variável de ambiente, banco, etc.)
 ADMIN_IDS = [123456789]  # Exemplo: [int(os.getenv("ADMIN_ID_1")), int(os.getenv("ADMIN_ID_2"))]
 
+# 🤖 Configurações do bot
+BOT_NAME = os.getenv("BOT_NAME", "Assistant Bot")
+
 # 🔐 Tokens e chaves de API
 BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
