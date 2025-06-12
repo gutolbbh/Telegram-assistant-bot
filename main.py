@@ -9,7 +9,7 @@ import os
 import io
 from PIL import Image
 import pytesseract
-from googletrans import Translator
+from deep_translator import GoogleTranslator
 from telegram import Update
 from telegram.ext import (
     Application, CommandHandler, MessageHandler, ContextTypes, filters
@@ -17,7 +17,7 @@ from telegram.ext import (
 
 # Configurações do bot
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-translator = Translator()
+translator = GoogleTranslator(source='auto', target='pt')
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -69,7 +69,7 @@ def process_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         # Tradução + variações
-        base = translator.translate(full_text, dest='pt').text
+        base = translator.translate(full_text)
         alt1 = base.replace("agora", "já disponível").replace("lançamento", "estreia")
         alt2 = base.replace("agora", "no momento").replace("disponível", "liberado")
 
@@ -89,7 +89,7 @@ def process_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def echo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         original_text = update.message.text
-        base = translator.translate(original_text, dest='pt').text
+        base = translator.translate(original_text)
         alt1 = base.replace("agora", "no momento").replace("exclusivo", "inédito")
         alt2 = base.replace("estreia", "lançamento").replace("já", "agora mesmo")
 
