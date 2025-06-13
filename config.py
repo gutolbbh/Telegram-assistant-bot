@@ -7,7 +7,8 @@ import os
 from typing import Optional
 
 # Bot Configuration
-BOT_TOKEN: Optional[str] = os.getenv("TELEGRAM_BOT_TOKEN")
+BOT_TOKEN: Optional[str] = os.getenv("BOT_TOKEN") or os.getenv(
+    "TELEGRAM_BOT_TOKEN")
 WEBHOOK_URL: Optional[str] = os.getenv("WEBHOOK_URL")
 
 # Logging Configuration
@@ -30,6 +31,10 @@ ADMIN_IDS: list = []
 admin_ids_str = os.getenv("ADMIN_IDS", "")
 if admin_ids_str:
     try:
-        ADMIN_IDS = [int(id.strip()) for id in admin_ids_str.split(",") if id.strip()]
+        ADMIN_IDS = [
+            int(id.strip()) for id in admin_ids_str.split(",") if id.strip()
+        ]
     except ValueError:
-        print("Warning: Invalid ADMIN_IDS format. Should be comma-separated integers.")
+        print(
+            "Warning: Invalid ADMIN_IDS format. Should be comma-separated integers."
+        )
