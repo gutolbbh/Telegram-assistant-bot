@@ -1,29 +1,35 @@
 """
-Configurações globais do bot.
-Carrega variáveis de ambiente e define constantes do sistema.
+Configuration module for the Telegram bot.
+Handles environment variables and bot settings.
 """
 
 import os
+from typing import Optional
 
-# ⚙️ Configurações de logging
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
-LOG_FORMAT = os.getenv("LOG_FORMAT", "%(asctime)s - %(levelname)s - %(message)s")
-ENABLE_LOGGING = os.getenv("ENABLE_LOGGING", "True").lower() == "true"
+# Bot Configuration
+BOT_TOKEN: Optional[str] = os.getenv("TELEGRAM_BOT_TOKEN")
+WEBHOOK_URL: Optional[str] = os.getenv("WEBHOOK_URL")
 
-# 👑 IDs dos administradores
-# Substitua ou carregue de outro lugar seguro (ex: variável de ambiente, banco, etc.)
-ADMIN_IDS = [123456789]  # Exemplo: [int(os.getenv("ADMIN_ID_1")), int(os.getenv("ADMIN_ID_2"))]
+# Logging Configuration
+LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
+LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
-# 🤖 Configurações do bot
-BOT_NAME = os.getenv("BOT_NAME", "Assistant Bot")
+# Bot Settings
+BOT_NAME: str = os.getenv("BOT_NAME", "Python Bot")
+BOT_USERNAME: str = os.getenv("BOT_USERNAME", "pythonbot")
 
-# 🔐 Tokens e chaves de API
-BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # Opcional para bots com webhook
+# Feature Flags
+ENABLE_LOGGING: bool = os.getenv("ENABLE_LOGGING", "true").lower() == "true"
+DEBUG_MODE: bool = os.getenv("DEBUG_MODE", "false").lower() == "true"
 
-# 🚨 Validação obrigatória
-if not BOT_TOKEN:
-    raise ValueError("❌ TELEGRAM_TOKEN não está configurado no ambiente.")
-if not OPENAI_API_KEY:
-    raise ValueError("❌ OPENAI_API_KEY não está configurado no ambiente.")
+# Rate limiting (messages per minute per user)
+RATE_LIMIT: int = int(os.getenv("RATE_LIMIT", "20"))
+
+# Admin Configuration
+ADMIN_IDS: list = []
+admin_ids_str = os.getenv("ADMIN_IDS", "")
+if admin_ids_str:
+    try:
+        ADMIN_IDS = [int(id.strip()) for id in admin_ids_str.split(",") if id.strip()]
+    except ValueError:
+        print("Warning: Invalid ADMIN_IDS format. Should be comma-separated integers.")

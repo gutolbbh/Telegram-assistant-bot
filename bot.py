@@ -8,13 +8,16 @@ import logging
 import os
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 from config import BOT_TOKEN, WEBHOOK_URL
-from handlers import start_handler, help_handler, echo_handler, error_handler, stats_handler, gpt_handler
-from utils import setup_logging
+from handlers import start_handler, help_handler, echo_handler, error_handler
+# from utils import setup_logging
 
 def main():
     """Start the bot."""
     # Setup logging
-    setup_logging()
+    logging.basicConfig(
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        level=logging.INFO
+    )
     logger = logging.getLogger(__name__)
     
     # Validate bot token
@@ -30,8 +33,6 @@ def main():
     # Register command handlers
     application.add_handler(CommandHandler("start", start_handler))
     application.add_handler(CommandHandler("help", help_handler))
-    application.add_handler(CommandHandler("stats", stats_handler))
-    application.add_handler(CommandHandler("gpt", gpt_handler))
     
     # Register message handler for non-command messages
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo_handler))
@@ -48,4 +49,4 @@ def main():
         raise
 
 if __name__ == '__main__':
-    main()
+     main()
