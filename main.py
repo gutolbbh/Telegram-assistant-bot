@@ -1,20 +1,18 @@
 #!/usr/bin/env python3
 """
 Telegram Bot Main Application
-Bot de cultura pop com tradução automática de mensagens, legendas e texto de imagem (OCR), com ajuste de simetria visual.
+Bot de cultura pop com tradução automática de mensagens, legendas e texto de imagem (OCR desativado),
+com ajuste de simetria visual.
 """
 
 import logging
 import os
-import io
-from PIL import Image
-import pytesseract
 from deep_translator import GoogleTranslator
 from telegram import Update
 from telegram.ext import (Application, CommandHandler, MessageHandler,
                           ContextTypes, filters)
 
-from ai_utils import traduzir_com_variações  # Import do seu módulo AI com a função traduzir_com_variações
+from ai_utils import traduzir_com_variações  # Função de tradução com variações via OpenAI
 
 # Configurações do bot
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -53,44 +51,41 @@ async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/start - Iniciar o bot\n"
         "/help - Mostrar ajuda\n"
         "/traduzir <texto> - Tradução automática com 3 variações\n"
-        "Você também pode enviar imagens com legenda ou textos diretos.")
+        "Você também pode enviar imagens com legenda ou textos diretos."
+    )
 
 
-# OCR e tradução com variações + ajuste de simetria
+# Processamento de imagem: SOMENTE LEGENDAS com variações (sem OCR)
 async def process_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        photo = update.message.photo[-1]
-        caption = update.message.caption or ""
+        caption = update.message.caption
 
-        photo_file = await photo.get_file()
-        photo_bytes = await photo_file.download_as_bytearray()
-        image = Image.open(io.BytesIO(photo_bytes))
-
-        # OCR da imagem
-        extracted_text = pytesseract.image_to_string(image, lang='eng')
-        full_text = (caption + "\n" + extracted_text).strip()
-
-        if not full_text:
+        if not caption:
             await update.message.reply_text(
-                "❌ Nenhum texto encontrado na imagem ou legenda.")
+                "📭 A imagem não veio com legenda. Envie uma legenda junto pra eu poder trabalhar."
+            )
             return
 
-        # Tradução + variações
-        base = translator.translate(full_text)
-        alt1 = base.replace("agora",
-                            "já disponível").replace("lançamento", "estreia")
-        alt2 = base.replace("agora",
-                            "no momento").replace("disponível", "liberado")
+        # Tradução + Variações de simetria
+        base = translator.translate(caption)
+        alt1 = base.replace("agora", "no momento").replace("lançamento", "estreia")
+        alt2 = base.replace("confirmado", "anunciado").replace("estreia", "debut")
 
         final = ajustar_simetria([base, alt1, alt2])
 
-        response = (f"🗨️ Texto original detectado:\n{full_text}\n\n"
-                    f"📝 Tradução otimizada:\n{final}")
+        response = (
+            f"📝 Tradução da legenda recebida:\n\n"
+            f"1️⃣ {base}\n\n"
+            f"2️⃣ {alt1}\n\n"
+            f"3️⃣ {alt2}\n\n"
+            f"✅ Sugerida para o layout:\n\n{final}"
+        )
+
         await update.message.reply_text(response)
 
     except Exception as e:
-        logger.error(f"Erro ao processar imagem: {e}")
-        await update.message.reply_text("Erro ao processar imagem ou legenda.")
+        logger.error(f"Erro ao processar legenda da imagem: {e}")
+        await update.message.reply_text("⚠️ Erro ao processar a legenda da imagem.")
 
 
 # Tradução de texto com ajuste de simetria
@@ -121,7 +116,8 @@ async def traduzir_handler(update: Update,
 
     if not texto:
         await update.message.reply_text(
-            "❗ Envie um texto após o comando /traduzir.")
+            "❗ Envie um texto após o comando /traduzir."
+        )
         return
 
     await update.message.reply_text("🔄 Traduzindo com variações...")
@@ -149,11 +145,9 @@ def main():
 
     application.add_handler(CommandHandler("start", start_handler))
     application.add_handler(CommandHandler("help", help_handler))
-    application.add_handler(CommandHandler(
-        "traduzir", traduzir_handler))  # <-- Aqui a nova linha do handler
+    application.add_handler(CommandHandler("traduzir", traduzir_handler))
     application.add_handler(MessageHandler(filters.PHOTO, process_image))
-    application.add_handler(
-        MessageHandler(filters.TEXT & ~filters.COMMAND, echo_handler))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo_handler))
     application.add_error_handler(error_handler)
 
     logger.info("Bot iniciado via polling...")
