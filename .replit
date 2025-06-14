@@ -24,3 +24,6 @@ args = "python bot.py"
 
 [deployment]
 run = ["sh", "-c", "python bot.py"]
+
+[nix]
+packages = ["vim"]
