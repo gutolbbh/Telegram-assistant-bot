@@ -1,9 +1,7 @@
-
 services:
-  - type: background
-    name: telegram-bot
+  - type: worker
+    name: telegram-assistant-bot
     env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
     plan: free
-    buildCommand: "pip install --upgrade pip && pip install --break-system-packages -r requirements.txt"
-    startCommand: "python main.py"
-    autoDeploy: true
