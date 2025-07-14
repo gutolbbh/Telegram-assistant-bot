@@ -1,5 +1,0 @@
-python-telegram-bot==20.3
-deep_translator
-openai
-pytesseract
-pillow
