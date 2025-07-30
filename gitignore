@@ -1,0 +1,9 @@
+
+# Ignorar arquivos de ambiente e cache
+.env
+*.env
+__pycache__/
+*.pyc
+*.pyo
+*.swp
+.DS_Store
